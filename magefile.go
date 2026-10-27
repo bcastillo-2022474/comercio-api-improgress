@@ -11,6 +11,11 @@ func Run() error {
 	return sh.RunV("go", "run", "./cmd/server")
 }
 
+// Sqlc regenerates the query packages from the *.sql files.
+func Sqlc() error {
+	return sh.RunV("sqlc", "generate")
+}
+
 // Test runs the test suite.
 func Test() error {
 	return sh.RunV("go", "test", "-count=1", "./...")

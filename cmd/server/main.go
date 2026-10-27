@@ -17,6 +17,7 @@ import (
 	"joao-api-comercio/internal/config"
 	"joao-api-comercio/internal/container"
 	"joao-api-comercio/internal/shared/httpx"
+	"joao-api-comercio/internal/shared/sqlite"
 )
 
 func main() {
@@ -35,7 +36,20 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	_ = container.New(&container.Dependencies{Config: cfg, Log: logger})
+	db, err := sqlite.Open(ctx, cfg.DatabasePath)
+	if err != nil {
+		logger.Error("opening database", "err", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	app, err := container.New(&container.Dependencies{Config: cfg, Log: logger, DB: db})
+	if err != nil {
+		logger.Error("setting up dependencies", "err", err)
+		os.Exit(1)
+	}
+	// Routes that call app's use cases come with the HTTP layer.
+	_ = app
 
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("joao-api-comercio", "0.1.0"))

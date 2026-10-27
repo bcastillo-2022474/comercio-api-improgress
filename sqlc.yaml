@@ -1,0 +1,16 @@
+version: "2"
+sql:
+  - engine: "sqlite"
+    schema: "migrations"
+    queries: "internal/modules/identity/user/repository/user.repository.sql"
+    gen:
+      go:
+        package: "db"
+        out: "internal/modules/identity/user/repository/db"
+  - engine: "sqlite"
+    schema: "migrations"
+    queries: "internal/shared/outbox/repository/outbox.repository.sql"
+    gen:
+      go:
+        package: "db"
+        out: "internal/shared/outbox/repository/db"
