@@ -5,23 +5,56 @@ dashboard KPIs, served over HTTP from the provided SQLite database.
 
 ## Quick start
 
-Requirements: Go 1.26, [mage](https://magefile.org), [sqlc](https://sqlc.dev) and the
-[goose](https://github.com/pressly/goose) CLI (only if you regenerate queries or migrate by hand).
+You need [mage](https://magefile.org) and Go 1.26. [air](https://github.com/air-verse/air) is
+needed for live reload, [sqlc](https://sqlc.dev) only if you change the SQL, and Docker only to
+build the image.
 
 ```sh
 go install github.com/magefile/mage@latest
-go install github.com/pressly/goose/v3/cmd/goose@v3.29.0
+go install github.com/air-verse/air@latest   # only for mage dev
 
-cp .env.example .env          # then set JWT_SECRET (openssl rand -hex 32)
-goose -dir migrations sqlite3 data/comercio_exterior.db up
-mage dev                      # live reload on HTTP_ADDR (default :8080)
+mage setup     # creates .env with a random JWT_SECRET, then applies the migrations
+mage dev       # server on HTTP_ADDR (default :8080), reloads on save
 ```
 
-`mage run` starts the server once, without live reload.
+Then open <http://localhost:8080/docs> for the interactive API docs. The request collection is in
+[`docs/api.http`](docs/api.http) for the JetBrains or VS Code REST Client. Run the `login` request
+first; the others read its token.
 
-Interactive docs are served at `GET /docs` (the spec is at `GET /openapi.json`). The request
-collection is in [`docs/api.http`](docs/api.http), for the JetBrains or VS Code REST Client. Run the
-`login` request first, the rest use its token.
+All the targets:
+
+| Target | What it does |
+|---|---|
+| `mage setup` | creates `.env` if missing (new `JWT_SECRET`), applies migrations. Safe to rerun |
+| `mage dev` | runs the server with live reload (air) |
+| `mage run` | runs the server once, without live reload |
+| `mage build` | compiles the server into `bin/server` |
+| `mage migrate` | applies pending migrations to `DATABASE_PATH` (the server never migrates by itself) |
+| `mage test` | runs the test suite |
+| `mage check` | gofmt, vet, build and tests, the same checks CI runs |
+| `mage sqlc` | regenerates the query code after a change to a `*.sql` file |
+| `mage dockerBuild` | builds the image locally as `joao-api-comercio:dev` |
+
+Run `mage -l` to see the list from the command line.
+
+## Docker
+
+```sh
+mage dockerBuild
+```
+
+The image has the server and the goose CLI, not the database. To migrate and serve a database
+from the host, mount its directory. On SELinux hosts (Fedora, RHEL) the mount needs `:z`:
+
+```sh
+docker run --rm -v "$PWD/data:/data:z" --entrypoint /app/goose joao-api-comercio:dev \
+  -dir /app/migrations sqlite3 /data/comercio_exterior.db up
+
+docker run --rm -p 8080:8080 -v "$PWD/data:/data:z" -e JWT_SECRET=<your secret> \
+  joao-api-comercio:dev
+```
+
+The container runs as a non-root user, so the data directory has to be writable by it.
 
 ## Configuration
 
@@ -140,6 +173,6 @@ data:
 
 ## Not done yet
 
-- Docker: no Dockerfile or docker-compose file yet.
+- Docker Compose: there is a Dockerfile, but no compose file.
 - Index migration for the declarations list. The list is a full table scan today.
 - Refresh tokens and logout. Access tokens are valid until they expire.
