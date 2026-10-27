@@ -1,0 +1,32 @@
+// Package httperr is the transport edge for errors: it maps domain error codes to HTTP statuses,
+// and logs the errors it cannot map, once, at the top of the request.
+package httperr
+
+import (
+	"context"
+	"log/slog"
+
+	"github.com/danielgtaylor/huma/v2"
+
+	"joao-api-comercio/internal/modules/identity/user"
+	"joao-api-comercio/internal/shared/apperr"
+)
+
+// codeToStatus has a row per code the API reports. A code with no row is internal.
+var codeToStatus = map[apperr.Code]func(msg string, errs ...error) huma.StatusError{
+	user.CodeInvalidEmail:       huma.Error422UnprocessableEntity,
+	user.CodeWeakPassword:       huma.Error422UnprocessableEntity,
+	user.CodeEmailTaken:         huma.Error409Conflict,
+	user.CodeInvalidCredentials: huma.Error401Unauthorized,
+}
+
+// ToHumaError turns err into the HTTP error the client sees. An unmapped error is logged in full
+// with the caller's log, and the client gets a plain 500 with no internal detail.
+func ToHumaError(ctx context.Context, log *slog.Logger, err error) error {
+	status, known := codeToStatus[apperr.CodeOf(err)]
+	if !known {
+		log.ErrorContext(ctx, "request failed", "err", err)
+		return huma.Error500InternalServerError("internal error")
+	}
+	return status(err.Error())
+}

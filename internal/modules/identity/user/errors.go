@@ -1,6 +1,10 @@
 package user
 
-import "fmt"
+import (
+	"fmt"
+
+	"joao-api-comercio/internal/shared/apperr"
+)
 
 type InvalidEmailError struct {
 	Email string
@@ -34,3 +38,11 @@ type InvalidCredentialsError struct{}
 func (e *InvalidCredentialsError) Error() string {
 	return "invalid credentials"
 }
+
+func (e *InvalidEmailError) Code() apperr.Code { return CodeInvalidEmail }
+
+func (e *WeakPasswordError) Code() apperr.Code { return CodeWeakPassword }
+
+func (e *EmailTakenError) Code() apperr.Code { return CodeEmailTaken }
+
+func (e *InvalidCredentialsError) Code() apperr.Code { return CodeInvalidCredentials }

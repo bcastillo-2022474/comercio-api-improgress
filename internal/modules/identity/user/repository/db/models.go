@@ -4,11 +4,63 @@
 
 package db
 
+import (
+	"database/sql"
+)
+
+type Aduana struct {
+	ID   int64
+	Name string
+}
+
 type Outbox struct {
 	ID        string
 	EventName string
 	Payload   string
 	CreatedAt string
+}
+
+type Pai struct {
+	ID   int64
+	Name string
+}
+
+type Poliza struct {
+	ID               int64
+	Correlativo      int64
+	FechaDeclaracion sql.NullTime
+	TipoCambioDolar  sql.NullFloat64
+	AduanaID         sql.NullInt64
+	TipoRegimenID    sql.NullInt64
+}
+
+type PolizaItem struct {
+	ID                      int64
+	PolizaID                sql.NullInt64
+	SacID                   sql.NullInt64
+	PaisID                  sql.NullInt64
+	TipoUnidadMedidaID      sql.NullInt64
+	CantidadFraccion        sql.NullFloat64
+	TasaDai                 sql.NullFloat64
+	ValorDai                sql.NullFloat64
+	ValorCifUds             sql.NullFloat64
+	TasaCifCantidadFraccion sql.NullFloat64
+}
+
+type Sac struct {
+	ID          int64
+	Fraccion    int64
+	Descripcion sql.NullString
+}
+
+type TipoRegiman struct {
+	ID   int64
+	Name string
+}
+
+type TipoUnidadMedida struct {
+	ID   int64
+	Name string
 }
 
 type User struct {

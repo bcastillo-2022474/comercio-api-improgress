@@ -16,6 +16,7 @@ import (
 
 	"joao-api-comercio/internal/config"
 	"joao-api-comercio/internal/container"
+	dimensionshandler "joao-api-comercio/internal/modules/dimensions/handler"
 	identityhandler "joao-api-comercio/internal/modules/identity/handler"
 	"joao-api-comercio/internal/shared/httpx"
 	"joao-api-comercio/internal/shared/sqlite"
@@ -55,6 +56,7 @@ func main() {
 	api := humago.New(mux, apiConfig)
 	registerHealth(api)
 	identityhandler.NewIdentity(app.Register, app.Login, logger).Mount(api)
+	dimensionshandler.NewDimensions(app.ListCountries, app.ListCustoms, app.ListRegimeTypes, logger).Mount(api)
 
 	server := &http.Server{
 		Addr:    cfg.HTTPAddr,

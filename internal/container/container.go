@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"joao-api-comercio/internal/config"
+	dimensionsreadmodel "joao-api-comercio/internal/modules/dimensions/readmodel"
+	dimensionsquery "joao-api-comercio/internal/modules/dimensions/use_cases/query"
 	"joao-api-comercio/internal/modules/identity/token"
 	"joao-api-comercio/internal/modules/identity/use_cases/command"
 	"joao-api-comercio/internal/modules/identity/user"
@@ -28,6 +30,10 @@ type Dependencies struct {
 type Container struct {
 	Register *command.RegisterUseCase
 	Login    *command.LoginUseCase
+
+	ListCountries   *dimensionsquery.ListCountriesUseCase
+	ListCustoms     *dimensionsquery.ListCustomsUseCase
+	ListRegimeTypes *dimensionsquery.ListRegimeTypesUseCase
 }
 
 func New(deps *Dependencies) (*Container, error) {
@@ -41,8 +47,13 @@ func New(deps *Dependencies) (*Container, error) {
 	}, time.Now)
 	hasher := bcrypthasher.NewBcrypt()
 
+	dimensions := dimensionsreadmodel.NewSQLite(deps.DB)
+
 	return &Container{
-		Register: command.NewRegisterUseCase(uow, hasher, time.Now),
-		Login:    command.NewLoginUseCase(uow, hasher, tokens),
+		Register:        command.NewRegisterUseCase(uow, hasher, time.Now, deps.Log),
+		Login:           command.NewLoginUseCase(uow, hasher, tokens, deps.Log),
+		ListCountries:   dimensionsquery.NewListCountriesUseCase(dimensions, deps.Log),
+		ListCustoms:     dimensionsquery.NewListCustomsUseCase(dimensions, deps.Log),
+		ListRegimeTypes: dimensionsquery.NewListRegimeTypesUseCase(dimensions, deps.Log),
 	}, nil
 }

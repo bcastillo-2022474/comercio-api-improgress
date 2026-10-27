@@ -3,7 +3,6 @@ package handler
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -12,6 +11,8 @@ import (
 
 	"joao-api-comercio/internal/modules/identity/use_cases/command"
 	"joao-api-comercio/internal/modules/identity/user"
+	"joao-api-comercio/internal/shared/apperr"
+	"joao-api-comercio/internal/shared/httperr"
 )
 
 type Identity struct {
@@ -76,7 +77,7 @@ type loginOutput struct {
 func (h *Identity) registerUser(ctx context.Context, in *registerInput) (*userOutput, error) {
 	u, err := h.registerUC.Execute(ctx, command.RegisterCommand{Email: in.Body.Email, Password: in.Body.Password})
 	if err != nil {
-		return nil, h.toHumaError(ctx, err)
+		return nil, httperr.ToHumaError(ctx, h.log.With("operation", "register"), err)
 	}
 
 	out := &userOutput{}
@@ -89,32 +90,14 @@ func (h *Identity) registerUser(ctx context.Context, in *registerInput) (*userOu
 func (h *Identity) loginUser(ctx context.Context, in *loginInput) (*loginOutput, error) {
 	res, err := h.loginUC.Execute(ctx, command.LoginCommand{Email: in.Body.Email, Password: in.Body.Password})
 	if err != nil {
-		return nil, h.toHumaError(ctx, err)
+		if apperr.CodeOf(err) == user.CodeInvalidCredentials {
+			h.log.WarnContext(ctx, "login failed")
+		}
+		return nil, httperr.ToHumaError(ctx, h.log.With("operation", "login"), err)
 	}
 
 	out := &loginOutput{}
 	out.Body.Token = res.Token
 	out.Body.ExpiresAt = res.ExpiresAt
 	return out, nil
-}
-
-// toHumaError turns a domain error into an HTTP error. Anything unknown is logged in full and sent
-// to the client as a plain 500, so no internal detail leaks.
-func (h *Identity) toHumaError(ctx context.Context, err error) error {
-	var invalidEmail *user.InvalidEmailError
-	var weakPassword *user.WeakPasswordError
-	var taken *user.EmailTakenError
-	var badCredentials *user.InvalidCredentialsError
-
-	switch {
-	case errors.As(err, &invalidEmail), errors.As(err, &weakPassword):
-		return huma.Error422UnprocessableEntity(err.Error())
-	case errors.As(err, &taken):
-		return huma.Error409Conflict(err.Error())
-	case errors.As(err, &badCredentials):
-		return huma.Error401Unauthorized("invalid credentials")
-	default:
-		h.log.ErrorContext(ctx, "identity request failed", "err", err)
-		return huma.Error500InternalServerError("internal error")
-	}
 }

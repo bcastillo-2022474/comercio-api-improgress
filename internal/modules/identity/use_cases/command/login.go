@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"joao-api-comercio/internal/modules/identity/user"
@@ -23,15 +24,18 @@ type LoginUseCase struct {
 	uow    shared.UnitOfWork[user.Repository]
 	hasher user.PasswordHasher
 	tokens TokenIssuer
+	log    *slog.Logger
 }
 
-func NewLoginUseCase(uow shared.UnitOfWork[user.Repository], hasher user.PasswordHasher, tokens TokenIssuer) *LoginUseCase {
-	return &LoginUseCase{uow: uow, hasher: hasher, tokens: tokens}
+func NewLoginUseCase(uow shared.UnitOfWork[user.Repository], hasher user.PasswordHasher, tokens TokenIssuer, log *slog.Logger) *LoginUseCase {
+	return &LoginUseCase{uow: uow, hasher: hasher, tokens: tokens, log: log.With("use_case", "login")}
 }
 
 // Execute checks the credentials and issues a token. Every credential failure
-// returns *user.InvalidCredentialsError. It runs in the unit of work like every command, though it writes nothing yet.
+// returns *user.InvalidCredentialsError. The log never holds the email.
 func (uc *LoginUseCase) Execute(ctx context.Context, cmd LoginCommand) (*LoginResult, error) {
+	uc.log.InfoContext(ctx, "starting login")
+
 	email, err := user.NewEmail(cmd.Email)
 	if err != nil {
 		return nil, &user.InvalidCredentialsError{}
@@ -52,6 +56,7 @@ func (uc *LoginUseCase) Execute(ctx context.Context, cmd LoginCommand) (*LoginRe
 			return fmt.Errorf("issuing token: %w", err)
 		}
 		result = &LoginResult{Token: token, ExpiresAt: expiresAt}
+		uc.log.InfoContext(ctx, "login succeeded", "user_id", found.Value.Id.String())
 		return nil
 	})
 	if err != nil {

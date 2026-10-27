@@ -3,6 +3,8 @@ package command
 import (
 	"context"
 	"errors"
+	"io"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -15,11 +17,13 @@ import (
 
 var fixedNow = time.Date(2026, 10, 27, 12, 0, 0, 0, time.UTC)
 
+var discard = slog.New(slog.NewTextHandler(io.Discard, nil))
+
 // newRegister wires the use case over repo and returns the outbox the unit of work writes to, so tests can inspect events.
 func newRegister(repo *userfakes.Repository) (*RegisterUseCase, *outboxfakes.Repository) {
 	outbox := outboxfakes.NewRepository()
 	uow := sharedfakes.NewUnitOfWork[user.Repository](repo, outbox, func() time.Time { return fixedNow })
-	return NewRegisterUseCase(uow, userfakes.Hasher{}, func() time.Time { return fixedNow }), outbox
+	return NewRegisterUseCase(uow, userfakes.Hasher{}, func() time.Time { return fixedNow }, discard), outbox
 }
 
 func TestRegister_StoresHashedUserAndPublishesEvent(t *testing.T) {

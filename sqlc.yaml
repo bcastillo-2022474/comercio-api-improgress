@@ -14,3 +14,10 @@ sql:
       go:
         package: "db"
         out: "internal/shared/outbox/repository/db"
+  - engine: "sqlite"
+    schema: "migrations"
+    queries: "internal/modules/dimensions/readmodel/dimensions.readmodel.sql"
+    gen:
+      go:
+        package: "db"
+        out: "internal/modules/dimensions/readmodel/db"

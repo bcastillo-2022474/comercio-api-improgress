@@ -32,7 +32,7 @@ func seededLogin(t *testing.T) (*LoginUseCase, *fakeTokens) {
 	}
 	tokens := &fakeTokens{}
 	uow := sharedfakes.NewUnitOfWork[user.Repository](repo, outboxfakes.NewRepository(), func() time.Time { return fixedNow })
-	return NewLoginUseCase(uow, userfakes.Hasher{}, tokens), tokens
+	return NewLoginUseCase(uow, userfakes.Hasher{}, tokens, discard), tokens
 }
 
 func TestLogin_IssuesTokenForValidCredentials(t *testing.T) {

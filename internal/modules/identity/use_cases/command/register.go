@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"joao-api-comercio/internal/modules/identity/user"
@@ -18,15 +19,18 @@ type RegisterUseCase struct {
 	uow    shared.UnitOfWork[user.Repository]
 	hasher user.PasswordHasher
 	now    func() time.Time
+	log    *slog.Logger
 }
 
-func NewRegisterUseCase(uow shared.UnitOfWork[user.Repository], hasher user.PasswordHasher, now func() time.Time) *RegisterUseCase {
-	return &RegisterUseCase{uow: uow, hasher: hasher, now: now}
+func NewRegisterUseCase(uow shared.UnitOfWork[user.Repository], hasher user.PasswordHasher, now func() time.Time, log *slog.Logger) *RegisterUseCase {
+	return &RegisterUseCase{uow: uow, hasher: hasher, now: now, log: log.With("use_case", "register")}
 }
 
 // Execute creates a user and publishes user.registered once the write commits.
-// It returns the stored user, which has no plain password.
+// It returns the stored user, which has no plain password. The log never holds the email.
 func (uc *RegisterUseCase) Execute(ctx context.Context, cmd RegisterCommand) (user.User, error) {
+	uc.log.InfoContext(ctx, "starting register")
+
 	email, err := user.NewEmail(cmd.Email)
 	if err != nil {
 		return user.User{}, err
@@ -50,5 +54,7 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, cmd RegisterCommand) (us
 	if err != nil {
 		return user.User{}, err
 	}
+
+	uc.log.InfoContext(ctx, "user registered", "user_id", u.Id.String())
 	return u, nil
 }
