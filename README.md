@@ -117,9 +117,9 @@ mage check    # gofmt, vet, build and tests
 ```
 
 The suite covers the domain (entity rules), the use cases (on in-memory fakes), the repository
-contracts (run against the fake and against SQLite), the error mapping, the JWT and password
-adapters, and the TTL cache (expiry, overwrite, concurrent access under `-race`). There are no
-HTTP-level tests.
+contracts (run against the fake and against SQLite), the error mapping, and the TTL cache (expiry,
+overwrite, concurrent access under `-race`). There are no tests for the JWT and password adapters
+and no HTTP-level tests.
 
 ## Observability
 
