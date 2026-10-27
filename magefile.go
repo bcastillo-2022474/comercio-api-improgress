@@ -3,12 +3,39 @@
 package main
 
 import (
+	"os"
+	"strings"
+
 	"github.com/magefile/mage/sh"
 )
 
-// Run starts the API server.
+// dotEnv reads .env. Variables already set in the shell win.
+func dotEnv() map[string]string {
+	env := map[string]string{}
+	raw, err := os.ReadFile(".env")
+	if err != nil {
+		return env
+	}
+	for _, line := range strings.Split(string(raw), "\n") {
+		name, value, found := strings.Cut(strings.TrimSpace(line), "=")
+		if !found || strings.HasPrefix(name, "#") || name == "" {
+			continue
+		}
+		if _, set := os.LookupEnv(name); !set {
+			env[name] = strings.Trim(value, `"'`)
+		}
+	}
+	return env
+}
+
+// Dev runs the server with live-reload (air).
+func Dev() error {
+	return sh.RunWithV(dotEnv(), "air")
+}
+
+// Run runs the server without live-reload.
 func Run() error {
-	return sh.RunV("go", "run", "./cmd/server")
+	return sh.RunWithV(dotEnv(), "go", "run", "./cmd/server")
 }
 
 // Sqlc regenerates the query packages from the *.sql files.

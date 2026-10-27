@@ -16,6 +16,7 @@ import (
 
 	"joao-api-comercio/internal/config"
 	"joao-api-comercio/internal/container"
+	identityhandler "joao-api-comercio/internal/modules/identity/handler"
 	"joao-api-comercio/internal/shared/httpx"
 	"joao-api-comercio/internal/shared/sqlite"
 )
@@ -48,12 +49,12 @@ func main() {
 		logger.Error("setting up dependencies", "err", err)
 		os.Exit(1)
 	}
-	// Routes that call app's use cases come with the HTTP layer.
-	_ = app
-
 	mux := http.NewServeMux()
-	api := humago.New(mux, huma.DefaultConfig("joao-api-comercio", "0.1.0"))
+	apiConfig := huma.DefaultConfig("joao-api-comercio", "0.1.0")
+	apiConfig.DocsRenderer = huma.DocsRendererStoplightElements
+	api := humago.New(mux, apiConfig)
 	registerHealth(api)
+	identityhandler.NewIdentity(app.Register, app.Login, logger).Mount(api)
 
 	server := &http.Server{
 		Addr:    cfg.HTTPAddr,
