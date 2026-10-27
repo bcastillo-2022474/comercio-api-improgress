@@ -10,6 +10,7 @@ import (
 
 	"joao-api-comercio/internal/modules/dimensions/readmodel"
 	dimensionsquery "joao-api-comercio/internal/modules/dimensions/use_cases/query"
+	"joao-api-comercio/internal/shared/auth"
 	"joao-api-comercio/internal/shared/httperr"
 )
 
@@ -24,14 +25,16 @@ func NewDimensions(listCountries *dimensionsquery.ListCountriesUseCase, listCust
 	return &Dimensions{listCountries: listCountries, listCustoms: listCustoms, listRegimeTypes: listRegimeTypes, log: log}
 }
 
-// Mount adds the lookup endpoints to api.
-func (h *Dimensions) Mount(api huma.API) {
+// Mount adds the lookup endpoints to api. Every lookup needs a signed-in caller, so protect is required.
+func (h *Dimensions) Mount(api huma.API, protect huma.Middlewares) {
 	huma.Register(api, huma.Operation{
 		OperationID: "list-countries",
 		Method:      http.MethodGet,
 		Path:        "/dimensions/paises",
 		Summary:     "List countries",
 		Tags:        []string{"dimensions"},
+		Middlewares: protect,
+		Security:    auth.BearerSecurity,
 	}, h.getCountries)
 
 	huma.Register(api, huma.Operation{
@@ -40,6 +43,8 @@ func (h *Dimensions) Mount(api huma.API) {
 		Path:        "/dimensions/aduanas",
 		Summary:     "List customs offices",
 		Tags:        []string{"dimensions"},
+		Middlewares: protect,
+		Security:    auth.BearerSecurity,
 	}, h.getCustoms)
 
 	huma.Register(api, huma.Operation{
@@ -48,6 +53,8 @@ func (h *Dimensions) Mount(api huma.API) {
 		Path:        "/dimensions/tipos-regimen",
 		Summary:     "List customs regime types",
 		Tags:        []string{"dimensions"},
+		Middlewares: protect,
+		Security:    auth.BearerSecurity,
 	}, h.getRegimeTypes)
 }
 

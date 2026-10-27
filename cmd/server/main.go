@@ -18,6 +18,7 @@ import (
 	"joao-api-comercio/internal/container"
 	dimensionshandler "joao-api-comercio/internal/modules/dimensions/handler"
 	identityhandler "joao-api-comercio/internal/modules/identity/handler"
+	"joao-api-comercio/internal/shared/auth"
 	"joao-api-comercio/internal/shared/httpx"
 	"joao-api-comercio/internal/shared/sqlite"
 )
@@ -53,10 +54,14 @@ func main() {
 	mux := http.NewServeMux()
 	apiConfig := huma.DefaultConfig("joao-api-comercio", "0.1.0")
 	apiConfig.DocsRenderer = huma.DocsRendererStoplightElements
+	apiConfig.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
+		"bearer": {Type: "http", Scheme: "bearer", BearerFormat: "JWT"},
+	}
 	api := humago.New(mux, apiConfig)
 	registerHealth(api)
 	identityhandler.NewIdentity(app.Register, app.Login, logger).Mount(api)
-	dimensionshandler.NewDimensions(app.ListCountries, app.ListCustoms, app.ListRegimeTypes, logger).Mount(api)
+	protect := auth.Require(api, app.Tokens)
+	dimensionshandler.NewDimensions(app.ListCountries, app.ListCustoms, app.ListRegimeTypes, logger).Mount(api, protect)
 
 	server := &http.Server{
 		Addr:    cfg.HTTPAddr,

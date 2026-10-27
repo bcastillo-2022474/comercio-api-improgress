@@ -30,6 +30,7 @@ type Dependencies struct {
 type Container struct {
 	Register *command.RegisterUseCase
 	Login    *command.LoginUseCase
+	Tokens   *token.JWTIssuer
 
 	ListCountries   *dimensionsquery.ListCountriesUseCase
 	ListCustoms     *dimensionsquery.ListCustomsUseCase
@@ -52,6 +53,7 @@ func New(deps *Dependencies) (*Container, error) {
 	return &Container{
 		Register:        command.NewRegisterUseCase(uow, hasher, time.Now, deps.Log),
 		Login:           command.NewLoginUseCase(uow, hasher, tokens, deps.Log),
+		Tokens:          tokens,
 		ListCountries:   dimensionsquery.NewListCountriesUseCase(dimensions, deps.Log),
 		ListCustoms:     dimensionsquery.NewListCustomsUseCase(dimensions, deps.Log),
 		ListRegimeTypes: dimensionsquery.NewListRegimeTypesUseCase(dimensions, deps.Log),
