@@ -9,6 +9,17 @@ import (
 	"context"
 )
 
+const countOutboxRecords = `-- name: CountOutboxRecords :one
+SELECT COUNT(*) FROM outbox
+`
+
+func (q *Queries) CountOutboxRecords(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countOutboxRecords)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const insertOutboxRecord = `-- name: InsertOutboxRecord :exec
 INSERT INTO outbox (id, event_name, payload, created_at)
 VALUES (?1, ?2, ?3, ?4)

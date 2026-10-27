@@ -35,3 +35,17 @@ func (r *Repository) FindByEmail(_ context.Context, email user.Email) (types.May
 	}
 	return types.None[user.User](), nil
 }
+
+// Snapshot copies the stored users, so a unit of work can roll them back.
+func (r *Repository) Snapshot() any {
+	copied := make(map[types.UserId]user.User, len(r.users))
+	for id, u := range r.users {
+		copied[id] = u
+	}
+	return copied
+}
+
+// Restore puts back the users from a Snapshot.
+func (r *Repository) Restore(snapshot any) {
+	r.users = snapshot.(map[types.UserId]user.User)
+}

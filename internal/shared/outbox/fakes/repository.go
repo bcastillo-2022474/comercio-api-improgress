@@ -25,6 +25,12 @@ func (r *Repository) Save(_ context.Context, records []outbox.Record) error {
 	return nil
 }
 
+func (r *Repository) Count(_ context.Context) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return len(r.records), nil
+}
+
 func (r *Repository) Records() []outbox.Record {
 	r.mu.Lock()
 	defer r.mu.Unlock()

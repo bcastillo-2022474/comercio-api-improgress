@@ -31,7 +31,7 @@ All the targets:
 | `mage build` | compiles the server into `bin/server` |
 | `mage migrate` | applies pending migrations to `DATABASE_PATH` (the server never migrates by itself) |
 | `mage test` | runs the test suite |
-| `mage check` | gofmt, vet, build and tests, the same checks CI runs |
+| `mage check` | gofmt, vet, build and tests |
 | `mage sqlc` | regenerates the query code after a change to a `*.sql` file |
 | `mage dockerBuild` | builds the image locally as `joao-api-comercio:dev` |
 
@@ -149,10 +149,17 @@ mage test     # go test -count=1 ./...
 mage check    # gofmt, vet, build and tests
 ```
 
-The suite covers the domain (entity rules), the use cases (on in-memory fakes), the repository
-contracts (run against the fake and against SQLite), the error mapping, and the TTL cache (expiry,
-overwrite, concurrent access under `-race`). There are no tests for the JWT and password adapters
-and no HTTP-level tests.
+The suite covers:
+
+- the domain: entity rules and the password policy;
+- the ports, each with a contract that the in-memory fake and the SQL adapter must both pass:
+  the repositories, and the unit of work (commit, rollback, events saved only on success);
+- the use cases, on in-memory fakes;
+- the error mapping, including a check that every declared error code has an HTTP status;
+- the JWT issuer (round trip, expiry, wrong secret, unsigned tokens, short secrets) and bcrypt;
+- the TTL cache, including concurrent access under `-race`.
+
+There are no HTTP-level tests.
 
 ## Observability
 

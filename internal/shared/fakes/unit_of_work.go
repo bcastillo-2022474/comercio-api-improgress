@@ -9,8 +9,16 @@ import (
 	"joao-api-comercio/internal/shared/outbox"
 )
 
+// Restorable is implemented by an in-memory repository that can roll back to an earlier state. The
+// unit of work calls it when a callback fails, the way a transaction rolls back.
+type Restorable interface {
+	Snapshot() any
+	Restore(snapshot any)
+}
+
 // UnitOfWork runs the callback against fixed repositories. When the callback succeeds it saves
-// the published events to the outbox, as the real one does in its transaction. A failing callback saves nothing.
+// the published events to the outbox, as the real one does in its transaction. A failing callback
+// saves nothing: the repositories are restored to their state before the callback.
 type UnitOfWork[R any] struct {
 	repos  R
 	outbox outbox.Repository
@@ -22,8 +30,17 @@ func NewUnitOfWork[R any](repos R, outbox outbox.Repository, now func() time.Tim
 }
 
 func (u *UnitOfWork[R]) Execute(ctx context.Context, fn func(ctx context.Context, r R, pub shared.Publisher) error) error {
+	restorable, canRestore := any(u.repos).(Restorable)
+	var snapshot any
+	if canRestore {
+		snapshot = restorable.Snapshot()
+	}
+
 	pub := shared.NewCollectingPublisher()
 	if err := fn(ctx, u.repos, pub); err != nil {
+		if canRestore {
+			restorable.Restore(snapshot)
+		}
 		return err
 	}
 
