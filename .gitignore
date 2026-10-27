@@ -1,0 +1,4 @@
+bin/
+.env
+.keys/
+data
