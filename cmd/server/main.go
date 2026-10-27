@@ -22,6 +22,7 @@ import (
 	polizashandler "joao-api-comercio/internal/modules/polizas/handler"
 	"joao-api-comercio/internal/shared/auth"
 	"joao-api-comercio/internal/shared/httpx"
+	"joao-api-comercio/internal/shared/metrics"
 	"joao-api-comercio/internal/shared/sqlite"
 )
 
@@ -62,14 +63,18 @@ func main() {
 	api := humago.New(mux, apiConfig)
 	registerHealth(api)
 	identityhandler.NewIdentity(app.Register, app.Login, logger).Mount(api)
-	protect := auth.Require(api, app.Tokens)
+	protect := auth.Require(app.Tokens)
 	dimensionshandler.NewDimensions(app.ListCountries, app.ListCustoms, app.ListRegimeTypes, logger).Mount(api, protect)
 	polizashandler.NewPolizas(app.CreatePoliza, app.ListPolizas, app.GetPoliza, logger).Mount(api, protect)
 	dashboardhandler.NewDashboard(app.KpiTotals, app.KpiTopFive, app.KpiValorPorMes, logger).Mount(api, protect)
 
+	// /metrics is plain http (not a Huma operation) and public: it is meant for the
+	// internal network / Prometheus scraper, so keep it off the public ingress.
+	mux.Handle("GET /metrics", metrics.Handler())
+
 	server := &http.Server{
 		Addr:    cfg.HTTPAddr,
-		Handler: cors.AllowAll().Handler(httpx.Logging(logger, mux)),
+		Handler: cors.AllowAll().Handler(metrics.Middleware(httpx.Logging(logger, mux))),
 	}
 
 	go func() {

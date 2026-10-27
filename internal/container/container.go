@@ -81,8 +81,8 @@ func New(deps *Dependencies) (*Container, error) {
 		CreatePoliza:    polizacommand.NewCreatePolizaUseCase(polizaUow, deps.Log),
 		ListPolizas:     polizaquery.NewListPolizasUseCase(polizaReads, deps.Log),
 		GetPoliza:       polizaquery.NewGetPolizaUseCase(polizaReads, deps.Log),
-		KpiTotals:       kpiquery.NewKpiTotalsUseCase(kpiReads, deps.Log),
-		KpiTopFive:      kpiquery.NewKpiTopFiveUseCase(kpiReads, kpiReads, deps.Log),
-		KpiValorPorMes:  kpiquery.NewKpiValorPorMesUseCase(kpiReads, deps.Log),
+		KpiTotals:       kpiquery.NewKpiTotalsUseCase(kpiReads, deps.Log, deps.Config.KpiCacheTTL),
+		KpiTopFive:      kpiquery.NewKpiTopFiveUseCase(kpiReads, kpiReads, deps.Log, deps.Config.KpiCacheTTL),
+		KpiValorPorMes:  kpiquery.NewKpiValorPorMesUseCase(kpiReads, deps.Log, deps.Config.KpiCacheTTL),
 	}, nil
 }

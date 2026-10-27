@@ -3,9 +3,11 @@ package query
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"joao-api-comercio/internal/modules/dashboard/kpi"
 	"joao-api-comercio/internal/modules/dashboard/readmodel"
+	"joao-api-comercio/internal/shared/cache"
 )
 
 // ValorPorMes is one year of import value, with all twelve months present. Months with no
@@ -18,10 +20,11 @@ type ValorPorMes struct {
 type KpiValorPorMesUseCase struct {
 	valorPorMes readmodel.ValorPorMesQuery
 	log         *slog.Logger
+	cache       *cache.TTL[int64, ValorPorMes]
 }
 
-func NewKpiValorPorMesUseCase(valorPorMes readmodel.ValorPorMesQuery, log *slog.Logger) *KpiValorPorMesUseCase {
-	return &KpiValorPorMesUseCase{valorPorMes: valorPorMes, log: log.With("use_case", "kpi_valor_por_mes")}
+func NewKpiValorPorMesUseCase(valorPorMes readmodel.ValorPorMesQuery, log *slog.Logger, ttl time.Duration) *KpiValorPorMesUseCase {
+	return &KpiValorPorMesUseCase{valorPorMes: valorPorMes, log: log.With("use_case", "kpi_valor_por_mes"), cache: cache.NewTTL[int64, ValorPorMes](ttl, nil)}
 }
 
 // Execute reads one year. Year 0 means the latest year in the data.
@@ -39,6 +42,11 @@ func (uc *KpiValorPorMesUseCase) Execute(ctx context.Context, year int64) (Valor
 		return ValorPorMes{}, &kpi.InvalidYearError{Year: year}
 	}
 
+	if cached, ok := uc.cache.Get(year); ok {
+		uc.log.InfoContext(ctx, "kpi served from cache", "year", year)
+		return cached, nil
+	}
+
 	rows, err := uc.valorPorMes.ValorPorMes(ctx, year)
 	if err != nil {
 		return ValorPorMes{}, err
@@ -54,6 +62,8 @@ func (uc *KpiValorPorMesUseCase) Execute(ctx context.Context, year int64) (Valor
 		}
 	}
 
+	result := ValorPorMes{Year: year, Meses: meses}
+	uc.cache.Set(year, result)
 	uc.log.InfoContext(ctx, "kpi valor por mes finished", "year", year)
-	return ValorPorMes{Year: year, Meses: meses}, nil
+	return result, nil
 }

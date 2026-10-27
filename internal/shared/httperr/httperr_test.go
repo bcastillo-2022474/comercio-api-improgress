@@ -143,3 +143,29 @@ func TestMappedErrorsAreNotLoggedAsErrors(t *testing.T) {
 		t.Errorf("a mapped domain error was logged:\n%s", logs.String())
 	}
 }
+
+// The domain code is the problem "type" in the body, so a client can branch on it without parsing the message.
+func TestMappedErrorsCarryTheDomainCodeInTheBody(t *testing.T) {
+	got := ToHumaError(context.Background(), discard, &user.EmailTakenError{Email: "ana@example.com"})
+
+	model, ok := got.(*huma.ErrorModel)
+	if !ok {
+		t.Fatalf("got %T, want a *huma.ErrorModel", got)
+	}
+	if model.Type != ErrorTypeURN(user.CodeEmailTaken) {
+		t.Errorf("type = %q, want %q", model.Type, ErrorTypeURN(user.CodeEmailTaken))
+	}
+}
+
+// An unmapped failure carries no code, so nothing about its internals reaches the client.
+func TestUnmappedErrorsCarryNoCode(t *testing.T) {
+	got := ToHumaError(context.Background(), discard, errors.New("pq: connection refused"))
+
+	model, ok := got.(*huma.ErrorModel)
+	if !ok {
+		t.Fatalf("got %T, want a *huma.ErrorModel", got)
+	}
+	if strings.Contains(model.Type, "urn:") {
+		t.Errorf("an unmapped error carried the type %q", model.Type)
+	}
+}

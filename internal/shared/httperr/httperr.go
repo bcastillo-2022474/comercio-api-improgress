@@ -33,13 +33,26 @@ var codeToStatus = map[apperr.Code]func(msg string, errs ...error) huma.StatusEr
 	kpi.CodeInvalidYear: huma.Error422UnprocessableEntity,
 }
 
-// ToHumaError turns err into the HTTP error the client sees. An unmapped error is logged in full
-// with the caller's log, and the client gets a plain 500 with no internal detail.
+// ErrorTypeURN is the RFC 9457 "type" of a domain error: a stable identifier in the body that a
+// client branches on, instead of matching the message text. It is a URN, so it needs no web host.
+func ErrorTypeURN(code apperr.Code) string {
+	return "urn:joao-api-comercio:error:" + string(code)
+}
+
+// ToHumaError turns err into the HTTP error the client sees. A mapped error carries its domain code
+// as the problem "type" in the body. An unmapped error is logged in full with the caller's log, and
+// the client gets a plain 500 with no internal detail.
 func ToHumaError(ctx context.Context, log *slog.Logger, err error) error {
-	status, known := codeToStatus[apperr.CodeOf(err)]
+	code := apperr.CodeOf(err)
+	status, known := codeToStatus[code]
 	if !known {
 		log.ErrorContext(ctx, "request failed", "err", err)
 		return huma.Error500InternalServerError("internal error")
 	}
-	return status(err.Error())
+
+	mapped := status(err.Error())
+	if model, ok := mapped.(*huma.ErrorModel); ok {
+		model.Type = ErrorTypeURN(code)
+	}
+	return mapped
 }

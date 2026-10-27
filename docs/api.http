@@ -1,0 +1,171 @@
+### joao-api-comercio - API collection (REST Client format)
+### Works with the JetBrains HTTP Client and the VS Code REST Client extension.
+### Source of truth: docs/openapi.json (served by the server at /openapi.json).
+###
+### Usage:
+###   1. Start the server (HTTP_ADDR must match @baseUrl, JWT_SECRET must be set).
+###   2. Run "register" once (returns 201; if the account already exists, skip it).
+###   3. Run "login". The @token file variable below is filled from its response.
+###   4. Run the authenticated requests in any order.
+
+# ---- Variables -------------------------------------------------------------
+@baseUrl = http://localhost:8080
+@email = reviewer@example.com
+@password = supersecret
+
+# Correlativo for the create-poliza request. Change it if 409 Conflict appears
+# (a declaration with this correlativo already exists).
+@correlativo = 9900000001
+
+# @token is declared right after the "login" request (see Auth section).
+# The REST Client resolves it from that request's response body.
+
+###############################################################################
+# System
+###############################################################################
+
+# Liveness check. Public, no token.
+# @name health
+GET {{baseUrl}}/healthz
+
+###############################################################################
+# Auth (identity)
+###############################################################################
+
+# Create an account. Public, no token. Expects 201.
+# @name register
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+###
+
+# Log in and get a bearer token. Public, no token. Expects 200.
+# The token is taken from the response body and stored in @token below.
+# @name login
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+###
+
+# Token from the login response, used by every authenticated request.
+@token = {{login.response.body.$.token}}
+
+###############################################################################
+# Dimensions (catalogs)
+###############################################################################
+
+# List countries. Requires a bearer token. Expects 200.
+# Ids returned here (for example pais_id 132) are the ones used in create-poliza.
+# @name listPaises
+GET {{baseUrl}}/dimensions/paises
+Authorization: Bearer {{token}}
+
+###
+
+# List customs offices (aduanas). Requires a bearer token. Expects 200.
+# @name listAduanas
+GET {{baseUrl}}/dimensions/aduanas
+Authorization: Bearer {{token}}
+
+###
+
+# List customs regime types (tipos de regimen). Requires a bearer token. Expects 200.
+# @name listTiposRegimen
+GET {{baseUrl}}/dimensions/tipos-regimen
+Authorization: Bearer {{token}}
+
+###############################################################################
+# Polizas (declarations)
+###############################################################################
+
+# Create a declaration with its items. Requires a bearer token. Expects 201.
+# Lookup ids used here exist in the provided data:
+#   sac_id 17, pais_id 132, tipo_unidad_medida_id 4, aduana_id 8, tipo_regimen_id 9.
+# Change @correlativo if the request returns 409 (already exists).
+# @name createPoliza
+POST {{baseUrl}}/polizas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "correlativo": {{correlativo}},
+  "fecha_declaracion": "2025-03-15",
+  "tipo_cambio_dolar": 7.75,
+  "aduana_id": 8,
+  "tipo_regimen_id": 9,
+  "items": [
+    {
+      "sac_id": 17,
+      "pais_id": 132,
+      "tipo_unidad_medida_id": 4,
+      "cantidad_fraccion": 100,
+      "tasa_dai": 0.05,
+      "valor_dai": 500,
+      "valor_cif_uds": 10000,
+      "tasa_cif_cantidad_fraccion": 100
+    }
+  ]
+}
+
+###
+
+# List declarations with default paging (page 1, page_size 20). Expects 200.
+# @name listPolizas
+GET {{baseUrl}}/polizas
+Authorization: Bearer {{token}}
+
+###
+
+# List declarations with filters: aduana, regime type, and a date range
+# (dates are YYYY-MM-DD). Expects 200.
+# @name listPolizasFiltered
+GET {{baseUrl}}/polizas?page=1&page_size=10&aduana_id=8&tipo_regimen_id=9&fecha_desde=2025-01-01&fecha_hasta=2025-12-31
+Authorization: Bearer {{token}}
+
+###
+
+# Get one declaration with its items. Uses the id returned by createPoliza.
+# Run createPoliza first. Expects 200.
+# @name getPoliza
+GET {{baseUrl}}/polizas/{{createPoliza.response.body.$.id}}
+Authorization: Bearer {{token}}
+
+###############################################################################
+# Dashboard (KPIs)
+###############################################################################
+
+# Headline totals: import value, declarations count, items count. Expects 200.
+# @name kpiTotals
+GET {{baseUrl}}/dashboard/kpis/totals
+Authorization: Bearer {{token}}
+
+###
+
+# Top 5 countries and top 5 products by import value. Expects 200.
+# @name kpiTop5
+GET {{baseUrl}}/dashboard/kpis/top-5
+Authorization: Bearer {{token}}
+
+###
+
+# Import value per month for a given year. Expects 200.
+# @name kpiValorPorMesYear
+GET {{baseUrl}}/dashboard/kpis/valor-por-mes?year=2025
+Authorization: Bearer {{token}}
+
+###
+
+# Import value per month, without year (the server uses the latest year in the data). Expects 200.
+# @name kpiValorPorMes
+GET {{baseUrl}}/dashboard/kpis/valor-por-mes
+Authorization: Bearer {{token}}
