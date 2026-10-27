@@ -18,6 +18,7 @@ import (
 	"joao-api-comercio/internal/container"
 	dimensionshandler "joao-api-comercio/internal/modules/dimensions/handler"
 	identityhandler "joao-api-comercio/internal/modules/identity/handler"
+	polizashandler "joao-api-comercio/internal/modules/polizas/handler"
 	"joao-api-comercio/internal/shared/auth"
 	"joao-api-comercio/internal/shared/httpx"
 	"joao-api-comercio/internal/shared/sqlite"
@@ -62,6 +63,7 @@ func main() {
 	identityhandler.NewIdentity(app.Register, app.Login, logger).Mount(api)
 	protect := auth.Require(api, app.Tokens)
 	dimensionshandler.NewDimensions(app.ListCountries, app.ListCustoms, app.ListRegimeTypes, logger).Mount(api, protect)
+	polizashandler.NewPolizas(app.CreatePoliza, app.ListPolizas, app.GetPoliza, logger).Mount(api, protect)
 
 	server := &http.Server{
 		Addr:    cfg.HTTPAddr,

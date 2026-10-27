@@ -21,3 +21,81 @@ sql:
       go:
         package: "db"
         out: "internal/modules/dimensions/readmodel/db"
+  - engine: "sqlite"
+    schema: "migrations"
+    queries: "internal/modules/polizas/poliza/repository/poliza.repository.sql"
+    gen:
+      go:
+        package: "db"
+        out: "internal/modules/polizas/poliza/repository/db"
+        overrides:
+          # Write-side types. The source data stores DATE as YYYY-MM-DD text, so it stays a string.
+          - column: "polizas.fecha_declaracion"
+            go_type: "string"
+          - column: "polizas.aduana_id"
+            go_type:
+              type: "int64"
+              pointer: true
+          - column: "polizas.tipo_regimen_id"
+            go_type:
+              type: "int64"
+              pointer: true
+          - db_type: "FLOAT"
+            nullable: true
+            go_type: "float64"
+          - db_type: "INTEGER"
+            nullable: true
+            go_type: "int64"
+  - engine: "sqlite"
+    schema: "migrations"
+    queries: "internal/modules/polizas/readmodel/poliza.readmodel.sql"
+    gen:
+      go:
+        package: "db"
+        out: "internal/modules/polizas/readmodel/db"
+        overrides:
+          # Nullable numeric and text columns read as pointers, so a NULL stays nil in the response.
+          - db_type: "FLOAT"
+            nullable: true
+            go_type:
+              type: "float64"
+              pointer: true
+          - column: "aduanas.name"
+            go_type:
+              type: "string"
+              pointer: true
+          - column: "tipo_regimen.name"
+            go_type:
+              type: "string"
+              pointer: true
+          - column: "sac.descripcion"
+            go_type:
+              type: "string"
+              pointer: true
+          # Filters and references: typed, and nil when the declaration has no customs office or regime.
+          - column: "polizas.aduana_id"
+            go_type:
+              type: "int64"
+              pointer: true
+          - column: "polizas.tipo_regimen_id"
+            go_type:
+              type: "int64"
+              pointer: true
+          - column: "polizas.fecha_declaracion"
+            go_type:
+              type: "string"
+              pointer: true
+          - column: "poliza_items.poliza_id"
+            go_type: "int64"
+          - column: "poliza_items.sac_id"
+            go_type:
+              type: "int64"
+              pointer: true
+          - column: "poliza_items.pais_id"
+            go_type:
+              type: "int64"
+              pointer: true
+          - column: "poliza_items.tipo_unidad_medida_id"
+            go_type:
+              type: "int64"
+              pointer: true

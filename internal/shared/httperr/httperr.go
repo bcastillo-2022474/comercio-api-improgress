@@ -9,6 +9,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"joao-api-comercio/internal/modules/identity/user"
+	"joao-api-comercio/internal/modules/polizas/poliza"
 	"joao-api-comercio/internal/shared/apperr"
 )
 
@@ -18,6 +19,15 @@ var codeToStatus = map[apperr.Code]func(msg string, errs ...error) huma.StatusEr
 	user.CodeWeakPassword:       huma.Error422UnprocessableEntity,
 	user.CodeEmailTaken:         huma.Error409Conflict,
 	user.CodeInvalidCredentials: huma.Error401Unauthorized,
+
+	poliza.CodeInvalidCorrelativo: huma.Error422UnprocessableEntity,
+	poliza.CodeInvalidFecha:       huma.Error422UnprocessableEntity,
+	poliza.CodeInvalidTipoCambio:  huma.Error422UnprocessableEntity,
+	poliza.CodeNoItems:            huma.Error422UnprocessableEntity,
+	poliza.CodeInvalidItem:        huma.Error422UnprocessableEntity,
+	poliza.CodeInvalidReference:   huma.Error422UnprocessableEntity,
+	poliza.CodeCorrelativoTaken:   huma.Error409Conflict,
+	poliza.CodeNotFound:           huma.Error404NotFound,
 }
 
 // ToHumaError turns err into the HTTP error the client sees. An unmapped error is logged in full

@@ -16,6 +16,11 @@ import (
 	"joao-api-comercio/internal/modules/identity/user"
 	bcrypthasher "joao-api-comercio/internal/modules/identity/user/hasher"
 	userrepo "joao-api-comercio/internal/modules/identity/user/repository"
+	"joao-api-comercio/internal/modules/polizas/poliza"
+	polizarepo "joao-api-comercio/internal/modules/polizas/poliza/repository"
+	polizareadmodel "joao-api-comercio/internal/modules/polizas/readmodel"
+	polizacommand "joao-api-comercio/internal/modules/polizas/use_cases/command"
+	polizaquery "joao-api-comercio/internal/modules/polizas/use_cases/query"
 	"joao-api-comercio/internal/shared/sqlite"
 )
 
@@ -35,6 +40,10 @@ type Container struct {
 	ListCountries   *dimensionsquery.ListCountriesUseCase
 	ListCustoms     *dimensionsquery.ListCustomsUseCase
 	ListRegimeTypes *dimensionsquery.ListRegimeTypesUseCase
+
+	CreatePoliza *polizacommand.CreatePolizaUseCase
+	ListPolizas  *polizaquery.ListPolizasUseCase
+	GetPoliza    *polizaquery.GetPolizaUseCase
 }
 
 func New(deps *Dependencies) (*Container, error) {
@@ -50,6 +59,11 @@ func New(deps *Dependencies) (*Container, error) {
 
 	dimensions := dimensionsreadmodel.NewSQLite(deps.DB)
 
+	polizaUow := sqlite.NewUnitOfWork(deps.DB, func(tx *sql.Tx) poliza.Repository {
+		return polizarepo.NewSQLiteRepository(tx)
+	}, time.Now)
+	polizaReads := polizareadmodel.NewSQLite(deps.DB)
+
 	return &Container{
 		Register:        command.NewRegisterUseCase(uow, hasher, time.Now, deps.Log),
 		Login:           command.NewLoginUseCase(uow, hasher, tokens, deps.Log),
@@ -57,5 +71,8 @@ func New(deps *Dependencies) (*Container, error) {
 		ListCountries:   dimensionsquery.NewListCountriesUseCase(dimensions, deps.Log),
 		ListCustoms:     dimensionsquery.NewListCustomsUseCase(dimensions, deps.Log),
 		ListRegimeTypes: dimensionsquery.NewListRegimeTypesUseCase(dimensions, deps.Log),
+		CreatePoliza:    polizacommand.NewCreatePolizaUseCase(polizaUow, deps.Log),
+		ListPolizas:     polizaquery.NewListPolizasUseCase(polizaReads, deps.Log),
+		GetPoliza:       polizaquery.NewGetPolizaUseCase(polizaReads, deps.Log),
 	}, nil
 }
