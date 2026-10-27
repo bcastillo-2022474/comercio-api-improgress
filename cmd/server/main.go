@@ -16,6 +16,7 @@ import (
 
 	"joao-api-comercio/internal/config"
 	"joao-api-comercio/internal/container"
+	dashboardhandler "joao-api-comercio/internal/modules/dashboard/handler"
 	dimensionshandler "joao-api-comercio/internal/modules/dimensions/handler"
 	identityhandler "joao-api-comercio/internal/modules/identity/handler"
 	polizashandler "joao-api-comercio/internal/modules/polizas/handler"
@@ -64,6 +65,7 @@ func main() {
 	protect := auth.Require(api, app.Tokens)
 	dimensionshandler.NewDimensions(app.ListCountries, app.ListCustoms, app.ListRegimeTypes, logger).Mount(api, protect)
 	polizashandler.NewPolizas(app.CreatePoliza, app.ListPolizas, app.GetPoliza, logger).Mount(api, protect)
+	dashboardhandler.NewDashboard(app.KpiTotals, app.KpiTopFive, app.KpiValorPorMes, logger).Mount(api, protect)
 
 	server := &http.Server{
 		Addr:    cfg.HTTPAddr,

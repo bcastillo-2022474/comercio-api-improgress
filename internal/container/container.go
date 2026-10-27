@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"joao-api-comercio/internal/config"
+	dashboardreadmodel "joao-api-comercio/internal/modules/dashboard/readmodel"
+	kpiquery "joao-api-comercio/internal/modules/dashboard/use_cases/query"
 	dimensionsreadmodel "joao-api-comercio/internal/modules/dimensions/readmodel"
 	dimensionsquery "joao-api-comercio/internal/modules/dimensions/use_cases/query"
 	"joao-api-comercio/internal/modules/identity/token"
@@ -44,6 +46,10 @@ type Container struct {
 	CreatePoliza *polizacommand.CreatePolizaUseCase
 	ListPolizas  *polizaquery.ListPolizasUseCase
 	GetPoliza    *polizaquery.GetPolizaUseCase
+
+	KpiTotals      *kpiquery.KpiTotalsUseCase
+	KpiTopFive     *kpiquery.KpiTopFiveUseCase
+	KpiValorPorMes *kpiquery.KpiValorPorMesUseCase
 }
 
 func New(deps *Dependencies) (*Container, error) {
@@ -63,6 +69,7 @@ func New(deps *Dependencies) (*Container, error) {
 		return polizarepo.NewSQLiteRepository(tx)
 	}, time.Now)
 	polizaReads := polizareadmodel.NewSQLite(deps.DB)
+	kpiReads := dashboardreadmodel.NewSQLite(deps.DB)
 
 	return &Container{
 		Register:        command.NewRegisterUseCase(uow, hasher, time.Now, deps.Log),
@@ -74,5 +81,8 @@ func New(deps *Dependencies) (*Container, error) {
 		CreatePoliza:    polizacommand.NewCreatePolizaUseCase(polizaUow, deps.Log),
 		ListPolizas:     polizaquery.NewListPolizasUseCase(polizaReads, deps.Log),
 		GetPoliza:       polizaquery.NewGetPolizaUseCase(polizaReads, deps.Log),
+		KpiTotals:       kpiquery.NewKpiTotalsUseCase(kpiReads, deps.Log),
+		KpiTopFive:      kpiquery.NewKpiTopFiveUseCase(kpiReads, kpiReads, deps.Log),
+		KpiValorPorMes:  kpiquery.NewKpiValorPorMesUseCase(kpiReads, deps.Log),
 	}, nil
 }

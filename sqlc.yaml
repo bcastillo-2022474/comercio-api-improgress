@@ -72,6 +72,14 @@ sql:
             go_type:
               type: "string"
               pointer: true
+          - column: "poliza_items.pais_id"
+            go_type:
+              type: "int64"
+              pointer: true
+          - column: "poliza_items.sac_id"
+            go_type:
+              type: "int64"
+              pointer: true
           # Filters and references: typed, and nil when the declaration has no customs office or regime.
           - column: "polizas.aduana_id"
             go_type:
@@ -96,6 +104,26 @@ sql:
               type: "int64"
               pointer: true
           - column: "poliza_items.tipo_unidad_medida_id"
+            go_type:
+              type: "int64"
+              pointer: true
+  - engine: "sqlite"
+    schema: "migrations"
+    queries: "internal/modules/dashboard/readmodel/dashboard.readmodel.sql"
+    gen:
+      go:
+        package: "db"
+        out: "internal/modules/dashboard/readmodel/db"
+        overrides:
+          - column: "sac.descripcion"
+            go_type:
+              type: "string"
+              pointer: true
+          - column: "poliza_items.pais_id"
+            go_type:
+              type: "int64"
+              pointer: true
+          - column: "poliza_items.sac_id"
             go_type:
               type: "int64"
               pointer: true
